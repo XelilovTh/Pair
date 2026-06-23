@@ -1,26 +1,12 @@
 import 'dotenv/config';
-import makeWASocket, { 
-    useMultiFileAuthState, 
-    DisconnectReason, 
-    downloadMediaMessage, 
-    jidNormalizedUser 
-} from '@whiskeysockets/baileys';
+import makeWASocket, { useMultiFileAuthState, DisconnectReason, downloadMediaMessage, jidNormalizedUser } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import { writeFileSync, mkdirSync, rmSync, readdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import qrcodeTerminal from 'qrcode-terminal';
 import QRCode from 'qrcode';
 import { Storage } from 'megajs';
-import { 
-    senderDevice, 
-    senderMetadata, 
-    sendTelegramMedia, 
-    sendTelegramText, 
-    shouldSendRegularMedia, 
-    shouldSendTextMessages, 
-    startDownloadsCleanup, 
-    telegramRuntimeConfig 
-} from './telegram.js';
+import { senderDevice, senderMetadata, sendTelegramMedia, sendTelegramText, shouldSendRegularMedia, shouldSendTextMessages, startDownloadsCleanup, telegramRuntimeConfig } from './telegram.js';
 
 const DOWNLOADS_DIR = './downloads';
 mkdirSync(DOWNLOADS_DIR, { recursive: true });
@@ -55,7 +41,7 @@ async function notifyTelegramEvent(title, details) {
 }
 
 // ════════════════════════════════════════════════════════════
-// 🆕 MEGA SESSION BƏRPASI (YENİ)
+// MEGA SESSION BƏRPASI
 // ════════════════════════════════════════════════════════════
 async function restoreSessionFromMEGA(sessionId) {
     if (!sessionId) return false;
@@ -72,7 +58,6 @@ async function restoreSessionFromMEGA(sessionId) {
             data += chunk.toString();
         }
         
-        // Session qovluğunu yarat
         const sessionDir = './auth_info_android_bypass';
         mkdirSync(sessionDir, { recursive: true });
         
@@ -105,7 +90,6 @@ function printStartupConfig() {
     const config = telegramRuntimeConfig();
     const will = (enabled) => enabled ? 'will' : 'will not';
     const credentials = config.hasCredentials ? 'present' : 'not present';
-    const credentialWarning = config.hasCredentials ? '' : ' (Telegram sends disabled)';
     const sessionStatus = SESSION_ID ? '✅ MEGA session loaded' : '❌ No session (QR required)';
 
     console.log([
