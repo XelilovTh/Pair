@@ -2,10 +2,10 @@ FROM node:20-bookworm
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install
-
+# Copy everything first so patch-baileys.js is available during postinstall
 COPY . .
+
+RUN npm install
 
 EXPOSE 8000
 
