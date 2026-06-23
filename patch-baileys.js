@@ -1,43 +1,44 @@
 /**
  * Reverting to frankel profile (v2.26.16.73)
+ * Baileys 6.7.9 üçün uyğunlaşdırılmışdır
  */
-import { readFileSync, writeFileSync } from 'fs'
-import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
+import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-// Baileys 6.7.9 üçün fərqli yol
+// Baileys 6.7.9 üçün mümkün yollar
 const possiblePaths = [
     './node_modules/@whiskeysockets/baileys/lib/Utils/validate-connection.js',
     './node_modules/@whiskeysockets/baileys/src/Utils/validate-connection.js'
-]
+];
 
-let TARGET = null
+let TARGET = null;
 for (const path of possiblePaths) {
     try {
-        const fullPath = join(__dirname, path)
-        if (require('fs').existsSync(fullPath)) {
-            TARGET = fullPath
-            break
+        const fullPath = join(__dirname, path);
+        if (existsSync(fullPath)) {
+            TARGET = fullPath;
+            break;
         }
     } catch (e) {}
 }
 
 if (!TARGET) {
-    console.log('⚠️ validate-connection.js not found, skipping patch')
-    process.exit(0)
+    console.log('⚠️ validate-connection.js not found, skipping patch');
+    process.exit(0);
 }
 
-let src = readFileSync(TARGET, 'utf-8')
+let src = readFileSync(TARGET, 'utf-8');
 
-// Patch işləri
+// 1. Add crypto import if missing
 if (!src.includes("import crypto") && !src.includes("import { randomUUID }")) {
-    src = `import crypto from 'crypto';\n` + src
+    src = `import crypto from 'crypto';\n` + src;
 }
 
-// getUserAgent dəyişdir
+// 2. Force replacement of getUserAgent
 const newUserAgent = `const getUserAgent = (config) => {
     return {
         appVersion: {
@@ -61,17 +62,17 @@ const newUserAgent = `const getUserAgent = (config) => {
         localeCountryIso31661Alpha2: 'US'
     };
 };
-`
-src = src.replace(/const getUserAgent = \(config\) => \{[\s\S]*?const PLATFORM_MAP/, newUserAgent + 'const PLATFORM_MAP')
+`;
+src = src.replace(/const getUserAgent = \(config\) => \{[\s\S]*?const PLATFORM_MAP/, newUserAgent + 'const PLATFORM_MAP');
 
-// getWebInfo dəyişdir
+// 3. Force replacement of getWebInfo
 const newWebInfo = `const getWebInfo = (config) => {
     return undefined;
 };
-`
-src = src.replace(/const getWebInfo = \(config\) => \{[\s\S]*?const getClientPayload/, newWebInfo + 'const getClientPayload')
+`;
+src = src.replace(/const getWebInfo = \(config\) => \{[\s\S]*?const getClientPayload/, newWebInfo + 'const getClientPayload');
 
-// getClientPayload dəyişdir
+// 4. Force replacement of getClientPayload
 const newClientPayload = `const getClientPayload = (config) => {
     const payload = {
         connectType: proto.ClientPayload.ConnectType.WIFI_UNKNOWN,
@@ -82,20 +83,20 @@ const newClientPayload = `const getClientPayload = (config) => {
     if (webInfo) payload.webInfo = webInfo;
     return payload;
 };
-`
-src = src.replace(/const getClientPayload = \(config\) => \{[\s\S]*?export const generateLoginNode/, newClientPayload + 'export const generateLoginNode')
+`;
+src = src.replace(/const getClientPayload = \(config\) => \{[\s\S]*?export const generateLoginNode/, newClientPayload + 'export const generateLoginNode');
 
-// getPlatformType dəyişdir
+// 5. Force replacement of getPlatformType
 const newGetPlatformType = `const getPlatformType = (platform) => {
     return proto.DeviceProps.PlatformType.ANDROID_PHONE;
 };
-`
-src = src.replace(/const getPlatformType = \(platform\) => \{[\s\S]*?export const generateRegistrationNode/, newGetPlatformType + 'export const generateRegistrationNode')
+`;
+src = src.replace(/const getPlatformType = \(platform\) => \{[\s\S]*?export const generateRegistrationNode/, newGetPlatformType + 'export const generateRegistrationNode');
 
-writeFileSync(TARGET, src)
+writeFileSync(TARGET, src);
 
-console.log('--------------------------------------------------')
-console.log('SUCCESS: Baileys patched successfully (Frankel Mode).')
-console.log(`Target: ${TARGET}`)
-console.log('Current Spoof: Android, frankel, v2.26.16.73')
-console.log('--------------------------------------------------\n')
+console.log('--------------------------------------------------');
+console.log('SUCCESS: Baileys patched successfully (Frankel Mode).');
+console.log(`Target: ${TARGET}`);
+console.log('Current Spoof: Android, frankel, v2.26.16.73');
+console.log('--------------------------------------------------\n');
