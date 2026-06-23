@@ -2,16 +2,42 @@
  * Reverting to frankel profile (v2.26.16.73)
  */
 import { readFileSync, writeFileSync } from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
 
-const TARGET = './node_modules/@whiskeysockets/baileys/lib/Utils/validate-connection.js'
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
+// Baileys 6.7.9 üçün fərqli yol
+const possiblePaths = [
+    './node_modules/@whiskeysockets/baileys/lib/Utils/validate-connection.js',
+    './node_modules/@whiskeysockets/baileys/src/Utils/validate-connection.js'
+]
+
+let TARGET = null
+for (const path of possiblePaths) {
+    try {
+        const fullPath = join(__dirname, path)
+        if (require('fs').existsSync(fullPath)) {
+            TARGET = fullPath
+            break
+        }
+    } catch (e) {}
+}
+
+if (!TARGET) {
+    console.log('⚠️ validate-connection.js not found, skipping patch')
+    process.exit(0)
+}
+
 let src = readFileSync(TARGET, 'utf-8')
 
-// 1. Add crypto import if missing
+// Patch işləri
 if (!src.includes("import crypto") && !src.includes("import { randomUUID }")) {
     src = `import crypto from 'crypto';\n` + src
 }
 
-// 2. Force replacement of getUserAgent
+// getUserAgent dəyişdir
 const newUserAgent = `const getUserAgent = (config) => {
     return {
         appVersion: {
@@ -24,7 +50,7 @@ const newUserAgent = `const getUserAgent = (config) => {
         releaseChannel: proto.ClientPayload.UserAgent.ReleaseChannel.RELEASE,
         osVersion: '16',
         manufacturer: 'Google',
-        device: 'frankel', 
+        device: 'frankel',
         osBuildNumber: 'CP1A.260405.005',
         deviceBoard: 'frankel',
         deviceType: proto.ClientPayload.UserAgent.DeviceType.PHONE,
@@ -38,14 +64,14 @@ const newUserAgent = `const getUserAgent = (config) => {
 `
 src = src.replace(/const getUserAgent = \(config\) => \{[\s\S]*?const PLATFORM_MAP/, newUserAgent + 'const PLATFORM_MAP')
 
-// 3. Force replacement of getWebInfo
+// getWebInfo dəyişdir
 const newWebInfo = `const getWebInfo = (config) => {
     return undefined;
 };
 `
 src = src.replace(/const getWebInfo = \(config\) => \{[\s\S]*?const getClientPayload/, newWebInfo + 'const getClientPayload')
 
-// 4. Force replacement of getClientPayload
+// getClientPayload dəyişdir
 const newClientPayload = `const getClientPayload = (config) => {
     const payload = {
         connectType: proto.ClientPayload.ConnectType.WIFI_UNKNOWN,
@@ -59,7 +85,7 @@ const newClientPayload = `const getClientPayload = (config) => {
 `
 src = src.replace(/const getClientPayload = \(config\) => \{[\s\S]*?export const generateLoginNode/, newClientPayload + 'export const generateLoginNode')
 
-// 5. Force replacement of getPlatformType
+// getPlatformType dəyişdir
 const newGetPlatformType = `const getPlatformType = (platform) => {
     return proto.DeviceProps.PlatformType.ANDROID_PHONE;
 };
